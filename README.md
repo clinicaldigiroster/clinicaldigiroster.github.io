@@ -1,13 +1,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Clinical Tracker Mobile</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -33,7 +33,17 @@
                     },
                     boxShadow: {
                         'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-                        'nav': '0 -4px 20px rgba(0,0,0,0.03)'
+                        'nav': '0 -4px 25px rgba(0,0,0,0.04)',
+                        'float': '0 10px 30px -5px rgba(79, 70, 229, 0.3)'
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
                     }
                 }
             }
@@ -41,88 +51,136 @@
     </script>
 
     <style>
-        html { -webkit-tap-highlight-color: transparent; }
-        /* Use dynamic viewport height for mobile browsers */
-        body { overscroll-behavior-y: none; height: 100dvh; }
+        /* Mobile Reset & Scroll Handling */
+        html { 
+            -webkit-tap-highlight-color: transparent; 
+            touch-action: manipulation;
+        }
         
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { 
+            /* Lock body to viewport */
+            height: 100dvh; 
+            width: 100vw;
+            overflow: hidden; 
+            position: fixed;
+            inset: 0;
+            background-color: #f8fafc;
+        }
         
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        /* Main Scroll Container */
+        #main-scroller {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            overscroll-behavior-y: contain; /* Prevent pull-to-refresh interfering */
+            scrollbar-width: none; /* Firefox */
+        }
+        #main-scroller::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
         
-        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        /* Utilities */
+        .calendar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 6px; 
+        }
+        
+        .fade-in { 
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        @keyframes fadeIn { 
+            to { opacity: 1; transform: translateY(0); } 
+        }
 
-        /* Ensure smooth touch scrolling on iOS */
-        #main-container { -webkit-overflow-scrolling: touch; }
+        /* Safe Area Support for iPhone X+ */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .pt-safe { padding-top: env(safe-area-inset-top); }
     </style>
 </head>
-<!-- Changed h-screen to h-[100dvh] for better mobile resizing -->
-<body class="bg-slate-50 text-slate-900 h-[100dvh] flex flex-col overflow-hidden selection:bg-brand-100">
+<body class="text-slate-900 flex flex-col selection:bg-brand-100">
 
-    <!-- TOP BAR -->
-    <header class="h-14 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 fixed top-0 w-full z-40">
-        <h1 id="header-title" class="font-bold text-lg text-slate-800">Dashboard</h1>
-        <button onclick="toggleProfileModal()" class="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold border border-brand-200 shadow-sm">
+    <!-- TOP BAR (Fixed Height) -->
+    <header class="flex-none h-14 bg-white/90 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-5 z-40 relative pt-safe">
+        <h1 id="header-title" class="font-bold text-lg text-slate-800 tracking-tight">Dashboard</h1>
+        <button onclick="toggleProfileModal()" class="w-9 h-9 rounded-full bg-gradient-to-br from-brand-100 to-indigo-100 text-brand-700 flex items-center justify-center text-xs font-bold border border-brand-200/50 shadow-sm active:scale-95 transition-transform">
             ME
         </button>
     </header>
 
-    <!-- MAIN CONTENT -->
-    <main id="main-container" class="flex-1 overflow-y-auto pt-16 pb-24 px-4 scroll-smooth">
-        <!-- Injected via JS -->
+    <!-- MAIN CONTENT (Scrollable Area) -->
+    <main id="main-scroller" class="flex-1 w-full bg-slate-50/50 relative">
+        <!-- Container with bottom padding to clear nav -->
+        <div id="content-area" class="px-4 pt-4 pb-32 min-h-full">
+            <!-- Injected via JS -->
+        </div>
     </main>
 
-    <!-- BOTTOM NAV -->
-    <nav class="fixed bottom-0 inset-x-0 h-[80px] bg-white border-t border-slate-100 shadow-nav flex justify-around items-center px-2 pb-2 z-50">
-        <button onclick="switchTab('home')" class="nav-btn group flex flex-col items-center justify-center w-16 h-full text-brand-600" data-tab="home">
-            <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
-                <i data-lucide="layout-dashboard" class="w-6 h-6 mb-1 transition-transform group-active:scale-95"></i>
-            </div>
-            <span class="text-[10px] font-medium">Dash</span>
-        </button>
-        
-        <button onclick="switchTab('calendar')" class="nav-btn group flex flex-col items-center justify-center w-16 h-full text-slate-400" data-tab="calendar">
-            <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
-                <i data-lucide="calendar" class="w-6 h-6 mb-1 transition-transform group-active:scale-95"></i>
-            </div>
-            <span class="text-[10px] font-medium">Schedule</span>
-        </button>
+    <!-- BOTTOM NAV (Fixed Height) -->
+    <nav class="flex-none bg-white border-t border-slate-100 shadow-nav z-50 pb-safe">
+        <div class="h-[70px] grid grid-cols-5 items-center px-1">
+            <button onclick="switchTab('home')" class="nav-btn group flex flex-col items-center justify-center h-full text-brand-600 w-full" data-tab="home">
+                <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors relative">
+                    <i data-lucide="layout-dashboard" class="w-6 h-6 mb-1 transition-transform group-active:scale-90"></i>
+                    <span class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full hidden" id="home-dot"></span>
+                </div>
+                <span class="text-[10px] font-semibold tracking-wide">Home</span>
+            </button>
+            
+            <button onclick="switchTab('calendar')" class="nav-btn group flex flex-col items-center justify-center h-full text-slate-400 w-full" data-tab="calendar">
+                <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
+                    <i data-lucide="calendar" class="w-6 h-6 mb-1 transition-transform group-active:scale-90"></i>
+                </div>
+                <span class="text-[10px] font-medium tracking-wide">Plan</span>
+            </button>
 
-        <button onclick="switchTab('requirements')" class="nav-btn group flex flex-col items-center justify-center w-16 h-full text-slate-400" data-tab="requirements">
-            <div class="bg-brand-600 text-white p-3 rounded-2xl -mt-6 shadow-lg shadow-brand-500/30 border-4 border-slate-50 transition-transform group-active:scale-95">
-                <i data-lucide="clipboard-list" class="w-6 h-6"></i>
-            </div>
-            <span class="text-[10px] font-medium mt-1">Checklists</span>
-        </button>
+            <!-- Floating Action Button Style Center -->
+            <button onclick="switchTab('requirements')" class="nav-btn group flex flex-col items-center justify-center h-full text-slate-400 w-full relative" data-tab="requirements">
+                <div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-gradient-to-tr from-brand-600 to-brand-500 text-white p-3.5 rounded-2xl shadow-float border-[4px] border-slate-50 transition-transform group-active:scale-90 active:shadow-none">
+                    <i data-lucide="clipboard-list" class="w-6 h-6"></i>
+                </div>
+                <span class="text-[10px] font-medium tracking-wide mt-7">Log</span>
+            </button>
 
-        <button onclick="switchTab('friends')" class="nav-btn group flex flex-col items-center justify-center w-16 h-full text-slate-400" data-tab="friends">
-            <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
-                <i data-lucide="users" class="w-6 h-6 mb-1 transition-transform group-active:scale-95"></i>
-            </div>
-            <span class="text-[10px] font-medium">Directory</span>
-        </button>
-        
-        <button onclick="switchTab('profile')" class="nav-btn group flex flex-col items-center justify-center w-16 h-full text-slate-400" data-tab="profile">
-            <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
-                <i data-lucide="user" class="w-6 h-6 mb-1 transition-transform group-active:scale-95"></i>
-            </div>
-            <span class="text-[10px] font-medium">Profile</span>
-        </button>
+            <button onclick="switchTab('friends')" class="nav-btn group flex flex-col items-center justify-center h-full text-slate-400 w-full" data-tab="friends">
+                <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
+                    <i data-lucide="users" class="w-6 h-6 mb-1 transition-transform group-active:scale-90"></i>
+                </div>
+                <span class="text-[10px] font-medium tracking-wide">Dir</span>
+            </button>
+            
+            <button onclick="switchTab('profile')" class="nav-btn group flex flex-col items-center justify-center h-full text-slate-400 w-full" data-tab="profile">
+                <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
+                    <i data-lucide="user" class="w-6 h-6 mb-1 transition-transform group-active:scale-90"></i>
+                </div>
+                <span class="text-[10px] font-medium tracking-wide">Me</span>
+            </button>
+        </div>
     </nav>
 
-    <!-- PROFILE MODAL -->
-    <div id="profile-modal" class="fixed inset-0 z-[60] hidden">
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="toggleProfileModal()"></div>
-        <div class="absolute bottom-0 inset-x-0 bg-white rounded-t-3xl p-6 transition-transform transform translate-y-full duration-300" id="profile-sheet-content">
-            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div>
-            <h2 class="text-xl font-bold mb-2">Select Student</h2>
-            <div class="relative mb-4">
-                <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
-                <input type="text" id="modal-search" placeholder="Search name or reg..." 
-                    class="w-full bg-slate-100 border-none pl-10 pr-4 py-3 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+    <!-- PROFILE MODAL (Full Height Sheet) -->
+    <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity opacity-0" id="modal-backdrop" onclick="toggleProfileModal()"></div>
+        
+        <div class="absolute bottom-0 inset-x-0 bg-white rounded-t-[32px] p-6 transition-transform transform translate-y-full duration-300 shadow-2xl h-[85dvh] flex flex-col pb-safe" id="profile-sheet-content">
+            <!-- Modal Handle -->
+            <div class="w-12 h-1.5 bg-slate-200/80 rounded-full mx-auto mb-6 flex-none"></div>
+            
+            <div class="flex-none mb-4">
+                <h2 class="text-2xl font-bold text-slate-800 mb-1">Select Student</h2>
+                <p class="text-sm text-slate-500">Find your name to log in</p>
             </div>
-            <div class="max-h-[300px] overflow-y-auto no-scrollbar space-y-1" id="user-selector-list">
+
+            <!-- Sticky Search in Modal -->
+            <div class="flex-none mb-4">
+                <div class="relative group">
+                    <i data-lucide="search" class="absolute left-4 top-3.5 w-5 h-5 text-slate-400 group-focus-within:text-brand-500 transition-colors"></i>
+                    <input type="text" id="modal-search" placeholder="Search name or reg no..." 
+                        class="w-full bg-slate-100 border-none pl-12 pr-4 py-3.5 rounded-2xl text-base focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all shadow-sm">
+                </div>
+            </div>
+
+            <!-- Scrollable List -->
+            <div class="flex-1 overflow-y-auto no-scrollbar space-y-2 pr-1" id="user-selector-list">
                 <!-- Users injected here -->
             </div>
         </div>
@@ -390,18 +448,25 @@
             // UI Update
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 const isAuth = btn.dataset.tab === tab;
-                btn.className = `nav-btn group flex flex-col items-center justify-center w-16 h-full ${isAuth ? 'text-brand-600' : 'text-slate-400'}`;
+                if(isAuth) {
+                    btn.classList.remove('text-slate-400');
+                    btn.classList.add('text-brand-600');
+                } else {
+                    btn.classList.add('text-slate-400');
+                    btn.classList.remove('text-brand-600');
+                }
             });
 
             const titles = { 'home': 'Dashboard', 'calendar': 'Schedule', 'requirements': 'Requirements', 'friends': 'Directory', 'profile': 'My Profile' };
             document.getElementById('header-title').innerText = titles[tab] || 'Clinical Tracker';
 
+            // Scroll to top of main container, NOT body
+            document.getElementById('main-scroller').scrollTop = 0;
             render();
-            window.scrollTo(0,0);
         }
 
         function render() {
-            const c = document.getElementById('main-container');
+            const c = document.getElementById('content-area');
             c.innerHTML = '';
             
             if(state.view === 'home') renderHome(c);
@@ -440,127 +505,120 @@
             const totalProgress = Math.round((completedItems / totalItems) * 100) || 0;
 
             c.innerHTML = `
-                <div class="mb-4 fade-in">
+                <div class="mb-5 fade-in">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-slate-500 text-sm font-medium">Good Morning,</p>
-                            <h2 class="text-2xl font-bold text-slate-800">${state.currentUser.name.split(' ')[0]}</h2>
+                            <h2 class="text-2xl font-bold text-slate-800 tracking-tight">${state.currentUser.name.split(' ')[0]}</h2>
                         </div>
-                        <div class="bg-brand-50 p-2 rounded-xl text-brand-600 font-bold text-xs border border-brand-100">
+                        <div class="bg-indigo-50 px-3 py-1 rounded-full text-indigo-600 font-bold text-xs border border-indigo-100/50 shadow-sm">
                             Sem V/VI
                         </div>
                     </div>
                 </div>
 
                 <!-- MAIN STATUS CARD -->
-                <div class="bg-gradient-to-br from-brand-600 to-indigo-700 rounded-3xl p-6 text-white shadow-lg shadow-brand-500/20 mb-6 relative overflow-hidden fade-in">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+                <div class="bg-gradient-to-br from-brand-600 to-indigo-700 rounded-[28px] p-6 text-white shadow-float mb-6 relative overflow-hidden fade-in transform transition-transform">
+                    <div class="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+                    <div class="absolute bottom-0 left-0 w-32 h-32 bg-brand-500/30 rounded-full -ml-10 -mb-10 blur-2xl"></div>
+                    
                     <div class="relative z-10">
-                        <div class="flex items-start justify-between">
+                        <div class="flex items-start justify-between mb-6">
                             <div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="bg-white/20 px-2 py-0.5 rounded text-[10px] font-semibold backdrop-blur-md border border-white/10 uppercase tracking-wide text-brand-50">Current Posting</span>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="bg-white/20 px-2.5 py-1 rounded-md text-[10px] font-bold backdrop-blur-md border border-white/10 uppercase tracking-wider text-brand-50 shadow-sm">Current Posting</span>
                                 </div>
-                                <h3 class="text-xl font-bold leading-tight max-w-[200px] mb-2">${myLoc}</h3>
+                                <h3 class="text-2xl font-bold leading-tight max-w-[200px] text-white">${myLoc}</h3>
                             </div>
-                            <div class="bg-white/20 p-2.5 rounded-xl backdrop-blur-sm border border-white/10 shadow-sm">
+                            <div class="bg-white/10 p-3 rounded-2xl backdrop-blur-md border border-white/20 shadow-inner">
                                 <i data-lucide="map-pin" class="w-6 h-6 text-white"></i>
                             </div>
                         </div>
                         
-                        <div class="mt-4 flex items-end justify-between">
-                            <div class="bg-white/20 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl">
-                                <span class="text-xs text-brand-100 font-medium block uppercase tracking-wider">Time Remaining</span>
-                                <span class="text-xl font-bold text-white">${daysLeftText}</span>
+                        <div class="flex items-end justify-between">
+                            <div class="bg-black/20 backdrop-blur-md border border-white/5 px-4 py-2.5 rounded-2xl">
+                                <span class="text-[10px] text-brand-100 font-bold uppercase tracking-wider block mb-0.5">Time Remaining</span>
+                                <span class="text-lg font-bold text-white flex items-center gap-2">
+                                    <i data-lucide="clock" class="w-4 h-4 text-brand-200"></i> ${daysLeftText}
+                                </span>
                             </div>
-                            ${ward ? `<button onclick="switchTab('requirements', '${ward.id}')" class="bg-white text-brand-700 text-xs font-bold px-3 py-2 rounded-lg shadow-sm hover:bg-brand-50 transition-colors flex items-center gap-1">Open <i data-lucide="arrow-right" class="w-3 h-3"></i></button>` : ''}
+                            ${ward ? `<button onclick="switchTab('requirements', '${ward.id}')" class="bg-white text-brand-700 text-xs font-bold px-4 py-3 rounded-xl shadow-lg hover:bg-brand-50 transition-all flex items-center gap-1 active:scale-95">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></button>` : ''}
                         </div>
                     </div>
                 </div>
-
-                <!-- RESOURCES CARD -->
-                <a href="https://drive.google.com/drive/folders/16K54NpWLnqiZCD7wcha10Uew9UnkCuDi?usp=drive_link" target="_blank" class="block bg-orange-50 border border-orange-100 p-4 rounded-2xl mb-6 flex items-center justify-between active:scale-95 transition-transform fade-in" style="animation-delay: 0.05s">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
-                            <i data-lucide="folder-heart" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-slate-800">Resources</h3>
-                            <p class="text-xs text-slate-500 mt-0.5">Evaluation Forms, Viva Answers & All</p>
-                        </div>
-                    </div>
-                    <div class="bg-white p-2 rounded-full shadow-sm text-slate-400">
-                        <i data-lucide="external-link" class="w-4 h-4"></i>
-                    </div>
-                </a>
 
                 <!-- QUICK STATS GRID -->
                 <div class="grid grid-cols-3 gap-3 mb-6 fade-in" style="animation-delay: 0.1s">
-                    <div class="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                        <div class="text-emerald-500 mb-1"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
-                        <span class="text-xl font-bold text-slate-800">${completedItems}</span>
-                        <span class="text-[10px] text-slate-400 font-medium uppercase">Completed</span>
+                    <div class="bg-white p-3 rounded-2xl border border-slate-100 shadow-soft flex flex-col items-center justify-center text-center py-4">
+                        <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mb-2"><i data-lucide="check-circle-2" class="w-4 h-4"></i></div>
+                        <span class="text-xl font-bold text-slate-800 leading-none mb-1">${completedItems}</span>
+                        <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wide">Done</span>
                     </div>
-                    <div class="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                        <div class="text-blue-500 mb-1"><i data-lucide="list-todo" class="w-5 h-5"></i></div>
-                        <span class="text-xl font-bold text-slate-800">${totalItems}</span>
-                        <span class="text-[10px] text-slate-400 font-medium uppercase">Total</span>
+                    <div class="bg-white p-3 rounded-2xl border border-slate-100 shadow-soft flex flex-col items-center justify-center text-center py-4">
+                        <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-2"><i data-lucide="list-todo" class="w-4 h-4"></i></div>
+                        <span class="text-xl font-bold text-slate-800 leading-none mb-1">${totalItems}</span>
+                        <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wide">Total</span>
                     </div>
-                    <div class="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                         <div class="text-orange-500 mb-1"><i data-lucide="pie-chart" class="w-5 h-5"></i></div>
-                        <span class="text-xl font-bold text-slate-800">${totalProgress}%</span>
-                        <span class="text-[10px] text-slate-400 font-medium uppercase">Overall</span>
+                    <div class="bg-white p-3 rounded-2xl border border-slate-100 shadow-soft flex flex-col items-center justify-center text-center py-4">
+                         <div class="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mb-2"><i data-lucide="pie-chart" class="w-4 h-4"></i></div>
+                        <span class="text-xl font-bold text-slate-800 leading-none mb-1">${totalProgress}%</span>
+                        <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wide">Progress</span>
                     </div>
                 </div>
 
-                <!-- EASY ACCESS TABS -->
-                <h3 class="font-bold text-slate-800 mb-3 px-1">Quick Access</h3>
-                <div class="grid grid-cols-2 gap-3 mb-8 fade-in" style="animation-delay: 0.15s">
-                    <button onclick="switchTab('requirements')" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-3 active:scale-95 transition-transform group">
-                        <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-                            <i data-lucide="file-edit" class="w-5 h-5"></i>
+                <!-- RESOURCES LINK -->
+                <a href="https://drive.google.com/drive/folders/16K54NpWLnqiZCD7wcha10Uew9UnkCuDi?usp=drive_link" target="_blank" class="block bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100/50 p-4 rounded-2xl mb-8 flex items-center justify-between active:scale-[0.98] transition-all fade-in shadow-sm hover:shadow-md" style="animation-delay: 0.15s">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-white text-orange-500 flex items-center justify-center shadow-sm">
+                            <i data-lucide="folder-heart" class="w-6 h-6"></i>
                         </div>
-                        <div class="text-left">
-                            <p class="font-bold text-sm text-slate-700">Log Activity</p>
-                            <p class="text-[10px] text-slate-400">Update checklists</p>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-sm">Study Resources</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Evaluation Forms, Vivas & More</p>
                         </div>
-                    </button>
-                    <button onclick="switchTab('friends')" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-3 active:scale-95 transition-transform group">
-                        <div class="w-10 h-10 rounded-full bg-pink-50 text-pink-600 flex items-center justify-center group-hover:bg-pink-100 transition-colors">
-                            <i data-lucide="search" class="w-5 h-5"></i>
-                        </div>
-                        <div class="text-left">
-                            <p class="font-bold text-sm text-slate-700">Find Friend</p>
-                            <p class="text-[10px] text-slate-400">Locate students</p>
-                        </div>
-                    </button>
-                </div>
+                    </div>
+                    <div class="bg-white p-2 rounded-full shadow-sm text-slate-300">
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </div>
+                </a>
 
                 <!-- FRIENDS WIDGET -->
                 <div class="mb-6 fade-in" style="animation-delay: 0.2s">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-bold text-slate-800">Pinned Friends</h3>
-                        <button onclick="switchTab('friends')" class="text-xs text-brand-600 font-bold bg-brand-50 px-2 py-1 rounded-lg">Manage</button>
+                    <div class="flex items-center justify-between mb-4 px-1">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="users" class="w-4 h-4 text-slate-400"></i> Pinned Friends
+                        </h3>
+                        <button onclick="switchTab('friends')" class="text-xs text-brand-600 font-bold bg-brand-50 px-2.5 py-1.5 rounded-lg active:bg-brand-100">Manage</button>
                     </div>
-                    <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4">
+                    
+                    <div class="flex gap-3 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4 snap-x">
                         ${state.pinnedFriends.length === 0 ? 
-                            `<div onclick="switchTab('friends')" class="w-full bg-slate-50 border border-slate-100 border-dashed rounded-xl p-4 text-center text-slate-400 text-sm">Tap Directory to pin friends</div>` : 
+                            `<div onclick="switchTab('friends')" class="w-full bg-slate-50 border border-slate-200 border-dashed rounded-2xl p-6 text-center text-slate-400 text-sm flex flex-col items-center gap-2">
+                                <i data-lucide="user-plus" class="w-6 h-6 opacity-50"></i>
+                                <span>Tap Directory to pin friends</span>
+                            </div>` : 
                             state.pinnedFriends.map(fid => {
                                 const f = STUDENTS.find(s => s.id === fid);
                                 if(!f) return '';
                                 const loc = getLocation(f.group, todayStr);
                                 return `
-                                <div onclick="viewStudent(${f.id})" class="flex-shrink-0 w-32 bg-white border border-slate-100 rounded-2xl p-3 shadow-soft flex flex-col items-center text-center active:scale-95 transition-transform">
-                                    <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm mb-2">
+                                <div onclick="viewStudent(${f.id})" class="snap-start flex-shrink-0 w-36 bg-white border border-slate-100 rounded-2xl p-4 shadow-soft flex flex-col items-center text-center active:scale-95 transition-transform relative overflow-hidden">
+                                    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-400 to-indigo-400"></div>
+                                    <div class="w-12 h-12 rounded-full bg-slate-50 text-slate-600 flex items-center justify-center font-bold text-lg mb-3 shadow-inner">
                                         ${f.name.charAt(0)}
                                     </div>
-                                    <p class="text-xs font-bold text-slate-800 truncate w-full">${f.name.split(' ')[0]}</p>
-                                    <p class="text-[10px] text-slate-500 truncate w-full mt-0.5">${loc}</p>
+                                    <p class="text-xs font-bold text-slate-800 truncate w-full mb-1">${f.name.split(' ')[0]}</p>
+                                    <div class="w-full bg-slate-50 rounded-lg py-1 px-2">
+                                        <p class="text-[10px] text-slate-500 truncate font-medium">${loc}</p>
+                                    </div>
                                 </div>`;
                             }).join('')
                         }
                     </div>
                 </div>
+                
+                <!-- Bottom Spacer for Scrolling -->
+                <div class="h-8"></div>
             `;
         }
 
@@ -568,7 +626,19 @@
         function viewStudent(id) {
             state.viewingStudent = id;
             state.view = 'friends'; // Ensure we are in the friends tab context
+            // Update Tab UI manually to reflect we are in friends section
+             document.querySelectorAll('.nav-btn').forEach(btn => {
+                const isAuth = btn.dataset.tab === 'friends';
+                if(isAuth) {
+                     btn.classList.remove('text-slate-400');
+                    btn.classList.add('text-brand-600');
+                } else {
+                     btn.classList.add('text-slate-400');
+                    btn.classList.remove('text-brand-600');
+                }
+            });
             render();
+            document.getElementById('main-scroller').scrollTop = 0;
         }
 
         function renderStudentDetail(c, studentId) {
@@ -588,41 +658,41 @@
 
             c.innerHTML = `
                 <div class="fade-in">
-                    <button onclick="state.viewingStudent=null; render()" class="flex items-center gap-2 text-sm text-slate-500 font-medium hover:text-brand-600 mb-6">
-                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Directory
+                    <button onclick="state.viewingStudent=null; render()" class="flex items-center gap-2 text-sm text-slate-500 font-bold hover:text-brand-600 mb-6 bg-white px-3 py-2 rounded-xl shadow-sm w-fit border border-slate-100">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back
                     </button>
 
-                    <div class="bg-white rounded-3xl p-6 shadow-soft border border-slate-100 text-center mb-8 relative overflow-hidden">
-                        <div class="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-brand-100 to-indigo-100 opacity-50"></div>
+                    <div class="bg-white rounded-[24px] p-6 shadow-soft border border-slate-100 text-center mb-8 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-20 bg-gradient-to-r from-brand-50 to-indigo-50"></div>
                         <div class="relative z-10 mt-4">
-                             <div class="w-20 h-20 rounded-full bg-white text-brand-600 flex items-center justify-center text-2xl font-bold shadow-md mx-auto mb-3">
+                             <div class="w-24 h-24 rounded-full bg-white text-brand-600 flex items-center justify-center text-3xl font-bold shadow-lg mx-auto mb-4 ring-4 ring-white">
                                 ${student.name.charAt(0)}
                             </div>
                             <h2 class="text-xl font-bold text-slate-900">${student.name}</h2>
-                            <div class="flex justify-center gap-2 mt-2">
-                                <span class="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-600">${student.reg}</span>
-                                <span class="text-xs font-bold bg-brand-50 text-brand-700 px-2 py-1 rounded">Group ${student.group}</span>
+                            <div class="flex justify-center gap-2 mt-3">
+                                <span class="text-xs font-mono bg-slate-100 px-3 py-1.5 rounded-lg text-slate-600 border border-slate-200">${student.reg}</span>
+                                <span class="text-xs font-bold bg-brand-50 text-brand-700 px-3 py-1.5 rounded-lg border border-brand-100">Group ${student.group}</span>
                             </div>
                         </div>
                     </div>
 
-                    <h3 class="font-bold text-slate-800 mb-4 px-1 flex items-center gap-2">
-                        <i data-lucide="calendar-clock" class="w-4 h-4 text-slate-400"></i> Rotation Timeline
+                    <h3 class="font-bold text-slate-800 mb-5 px-1 flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <i data-lucide="calendar-clock" class="w-4 h-4 text-brand-500"></i> Rotation Timeline
                     </h3>
                     
-                    <div class="relative border-l-2 border-slate-200 ml-4 space-y-8 pb-8">
+                    <div class="relative border-l-2 border-slate-200 ml-5 space-y-8 pb-8">
                         ${schedule.map((item) => `
-                            <div class="relative pl-6 ${item.status === 'past' ? 'opacity-50 grayscale' : ''}">
-                                <div class="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-2 bg-white ${item.status === 'current' ? 'border-brand-500 ring-4 ring-brand-100' : 'border-slate-300'}"></div>
+                            <div class="relative pl-8 ${item.status === 'past' ? 'opacity-60 grayscale-[0.5]' : ''}">
+                                <div class="absolute -left-[9px] top-4 w-4 h-4 rounded-full border-[3px] bg-white ${item.status === 'current' ? 'border-brand-500 ring-4 ring-brand-100' : 'border-slate-300'} z-10"></div>
                                 
-                                <div class="bg-white p-4 rounded-xl border ${item.status === 'current' ? 'border-brand-200 shadow-md' : 'border-slate-100 shadow-sm'}">
-                                    <div class="flex justify-between items-start mb-1">
+                                <div class="bg-white p-4 rounded-2xl border ${item.status === 'current' ? 'border-brand-200 shadow-float ring-1 ring-brand-100' : 'border-slate-100 shadow-sm'} transition-all">
+                                    <div class="flex justify-between items-center mb-2">
                                         <span class="text-[10px] font-bold uppercase tracking-wider ${item.status === 'current' ? 'text-brand-600' : 'text-slate-400'}">
                                             ${item.range.label}
                                         </span>
-                                        ${item.status === 'current' ? '<span class="px-2 py-0.5 bg-brand-100 text-brand-700 text-[10px] font-bold rounded-full">NOW</span>' : ''}
+                                        ${item.status === 'current' ? '<span class="px-2.5 py-1 bg-brand-600 text-white text-[9px] font-bold rounded-full shadow-sm animate-pulse">NOW</span>' : ''}
                                     </div>
-                                    <div class="text-sm font-bold text-slate-800">${item.location}</div>
+                                    <div class="text-sm font-bold text-slate-800 leading-snug">${item.location}</div>
                                 </div>
                             </div>
                         `).join('')}
@@ -631,7 +701,7 @@
             `;
         }
 
-        // --- Other Views (Slightly Updated for consistency) ---
+        // --- Other Views ---
 
         function renderFriends(c) {
             const filtered = STUDENTS.filter(s => 
@@ -640,42 +710,42 @@
             );
 
             c.innerHTML = `
-                <div class="sticky top-0 bg-slate-50 z-10 pb-4 pt-2">
-                     <div class="relative shadow-sm">
-                        <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
+                <div class="sticky top-0 bg-slate-50/95 backdrop-blur-sm z-20 pb-4 pt-1">
+                     <div class="relative shadow-sm group">
+                        <i data-lucide="search" class="absolute left-4 top-3.5 w-5 h-5 text-slate-400 group-focus-within:text-brand-500 transition-colors"></i>
                         <input type="text" placeholder="Search 20 students..." 
                             value="${state.studentSearch}"
                             oninput="updateSearch(this.value)"
-                            class="w-full bg-white border border-slate-200 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+                            class="w-full bg-white border border-slate-200 pl-12 pr-4 py-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent shadow-sm">
                     </div>
                 </div>
 
-                <div class="space-y-3 pb-20 fade-in">
+                <div class="space-y-3 pb-8 fade-in">
                     ${filtered.map(s => {
                         const isPinned = state.pinnedFriends.includes(s.id);
                         const isMe = s.id === state.currentUser.id;
                         return `
                         <div onclick="viewStudent(${s.id})" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between active:scale-[0.98] transition-transform">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-sm">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-full ${isMe ? 'bg-brand-50 text-brand-600' : 'bg-slate-100 text-slate-500'} flex items-center justify-center font-bold text-base">
                                     ${s.name.charAt(0)}
                                 </div>
                                 <div>
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 mb-0.5">
                                         <p class="font-bold text-slate-800 text-sm">${s.name}</p>
-                                        ${isMe ? '<span class="bg-brand-100 text-brand-700 text-[10px] font-bold px-1.5 py-0.5 rounded">YOU</span>' : ''}
+                                        ${isMe ? '<span class="bg-brand-100 text-brand-700 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">You</span>' : ''}
                                     </div>
                                     <p class="text-xs text-slate-500 font-mono">${s.reg} • Group ${s.group}</p>
                                 </div>
                             </div>
                             ${!isMe ? `
-                            <button onclick="event.stopPropagation(); togglePin(${s.id})" class="p-2 rounded-full transition-colors ${isPinned ? 'bg-pink-50 text-pink-500' : 'bg-slate-50 text-slate-400'}">
+                            <button onclick="event.stopPropagation(); togglePin(${s.id})" class="p-2.5 rounded-full transition-colors ${isPinned ? 'bg-pink-50 text-pink-500' : 'bg-slate-50 text-slate-300'}">
                                 <i data-lucide="heart" class="w-5 h-5 ${isPinned ? 'fill-current' : ''}"></i>
                             </button>` : ''}
                         </div>
                         `;
                     }).join('')}
-                    ${filtered.length === 0 ? '<div class="text-center text-slate-400 text-sm py-8">No students found</div>' : ''}
+                    ${filtered.length === 0 ? '<div class="flex flex-col items-center justify-center py-12 text-slate-400 gap-2"><i data-lucide="search-x" class="w-8 h-8 opacity-50"></i><p class="text-sm">No students found</p></div>' : ''}
                 </div>
             `;
         }
@@ -686,23 +756,29 @@
                 const progress = getWardProgress(ward);
                 
                 c.innerHTML = `
-                    <div class="mb-4 fade-in">
-                        <button onclick="switchTab('requirements')" class="flex items-center gap-2 text-sm text-slate-500 font-medium hover:text-brand-600 mb-4">
-                            <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Wards
-                        </button>
-                        <h2 class="text-xl font-bold text-slate-800 leading-tight mb-1">${ward.name}</h2>
-                        <div class="flex items-center gap-2">
-                             <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                                 <div class="h-full bg-brand-500 transition-all" style="width: ${progress}%"></div>
-                             </div>
-                             <span class="text-xs font-bold text-brand-600">${progress}%</span>
+                    <div class="mb-6 fade-in sticky top-0 bg-slate-50/95 backdrop-blur-sm z-20 py-2">
+                        <div class="flex items-center gap-3 mb-4">
+                            <button onclick="switchTab('requirements')" class="bg-white border border-slate-200 p-2 rounded-xl shadow-sm text-slate-500 hover:text-brand-600">
+                                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                            </button>
+                            <h2 class="text-lg font-bold text-slate-800 leading-tight truncate flex-1">${ward.name}</h2>
+                        </div>
+                        
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                             <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold text-slate-500 uppercase">Completion</span>
+                                <span class="text-xs font-bold text-brand-600">${progress}%</span>
+                            </div>
+                            <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-brand-500 transition-all duration-500 ease-out" style="width: ${progress}%"></div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="space-y-6 fade-in">
+                    <div class="space-y-6 fade-in pb-8">
                         ${ward.logbook.length > 0 ? `
                         <div>
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Logbook Requirements</h3>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1 flex items-center gap-2"><i data-lucide="book-open" class="w-3 h-3"></i> Logbook Items</h3>
                             <div class="space-y-2">
                                 ${ward.logbook.map(item => renderCheckItem(item)).join('')}
                             </div>
@@ -710,7 +786,7 @@
 
                         ${ward.files.length > 0 ? `
                         <div>
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">File Completion</h3>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1 flex items-center gap-2"><i data-lucide="file-text" class="w-3 h-3"></i> Files & Reports</h3>
                             <div class="space-y-2">
                                 ${ward.files.map(item => renderCheckItem(item)).join('')}
                             </div>
@@ -722,26 +798,31 @@
 
             c.innerHTML = `
                 <div class="mb-6 fade-in">
-                    <h2 class="text-xl font-bold text-slate-800 mb-2">Checklists</h2>
-                    <p class="text-sm text-slate-500">Select your current clinical area to view specific requirements.</p>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-1">Requirements</h2>
+                    <p class="text-sm text-slate-500">Track your clinical progress by ward</p>
                 </div>
 
-                <div class="grid gap-3 fade-in">
+                <div class="grid gap-3 fade-in pb-8">
                     ${CLINICAL_DATA.map(ward => {
                         const prog = getWardProgress(ward);
+                        const isComplete = prog === 100;
                         return `
-                        <div onclick="switchTab('requirements', '${ward.id}')" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between active:scale-[0.99] transition-transform">
-                            <div class="flex items-center gap-3 overflow-hidden">
-                                <div class="w-10 h-10 rounded-lg ${prog === 100 ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-50 text-indigo-600'} flex-shrink-0 flex items-center justify-center">
-                                    <i data-lucide="${prog === 100 ? 'check-circle-2' : 'folder-open'}" class="w-5 h-5"></i>
+                        <div onclick="switchTab('requirements', '${ward.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between active:scale-[0.98] transition-all group relative overflow-hidden">
+                            ${isComplete ? '<div class="absolute right-0 top-0 w-16 h-16 bg-emerald-500/10 rounded-bl-full -mr-8 -mt-8"></div>' : ''}
+                            <div class="flex items-center gap-4 overflow-hidden relative z-10">
+                                <div class="w-12 h-12 rounded-xl ${isComplete ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-50 text-indigo-600'} flex-shrink-0 flex items-center justify-center transition-colors">
+                                    <i data-lucide="${isComplete ? 'check-circle-2' : 'folder'}" class="w-6 h-6"></i>
                                 </div>
                                 <div class="min-w-0">
-                                    <h3 class="font-bold text-slate-800 text-sm truncate">${ward.name}</h3>
-                                    <p class="text-xs text-slate-500">${ward.logbook.length + ward.files.length} Items</p>
+                                    <h3 class="font-bold text-slate-800 text-sm truncate pr-2 group-hover:text-brand-600 transition-colors">${ward.name}</h3>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 font-medium">${ward.logbook.length + ward.files.length} Tasks</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="flex flex-col items-end">
-                                <span class="text-xs font-bold ${prog===100?'text-emerald-600':'text-slate-400'}">${prog}%</span>
+                            <div class="flex flex-col items-end pl-2 relative z-10">
+                                <span class="text-sm font-bold ${isComplete?'text-emerald-600':'text-slate-300'}">${prog}%</span>
+                                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 mt-1"></i>
                             </div>
                         </div>
                         `;
@@ -751,14 +832,14 @@
         }
 
         function renderCheckItem(item) {
-            if(item.id === 'f_title') return `<div class="text-xs font-bold text-slate-400 mt-2 mb-1 pl-1">${item.text}</div>`;
+            if(item.id === 'f_title') return `<div class="text-xs font-bold text-brand-600 mt-4 mb-2 pl-1 uppercase tracking-wide border-b border-slate-100 pb-1">${item.text}</div>`;
             const isDone = state.checklist[item.id];
             return `
-                <div onclick="toggleCheck('${item.id}')" class="bg-white p-3.5 rounded-xl border ${isDone ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-100'} shadow-sm flex items-start gap-3 active:scale-[0.99] transition-all">
-                    <div class="mt-0.5 w-5 h-5 rounded border-2 ${isDone ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'} flex items-center justify-center transition-colors">
-                        <i data-lucide="check" class="w-3.5 h-3.5 text-white ${isDone ? 'opacity-100' : 'opacity-0'}"></i>
+                <div onclick="toggleCheck('${item.id}')" class="group bg-white p-3.5 rounded-xl border ${isDone ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-100'} shadow-sm flex items-start gap-3 active:scale-[0.98] transition-all cursor-pointer select-none">
+                    <div class="mt-0.5 w-6 h-6 rounded-lg border-2 ${isDone ? 'bg-emerald-500 border-emerald-500' : 'border-slate-200 group-hover:border-brand-400'} flex items-center justify-center transition-all flex-shrink-0">
+                        <i data-lucide="check" class="w-3.5 h-3.5 text-white ${isDone ? 'opacity-100 scale-100' : 'opacity-0 scale-50'} transition-all duration-300"></i>
                     </div>
-                    <span class="text-sm font-medium ${isDone ? 'text-slate-400 line-through' : 'text-slate-700'}">${item.text}</span>
+                    <span class="text-sm font-medium leading-tight ${isDone ? 'text-slate-400 line-through' : 'text-slate-700'} pt-0.5">${item.text}</span>
                 </div>
             `;
         }
@@ -789,16 +870,23 @@
             const daysInMonth = 32 - new Date(year, month, 32).getDate();
             
             let daysHTML = '';
-            for(let i=0; i<firstDay; i++) daysHTML += `<div></div>`;
+            // Add empty cells for start of month
+            for(let i=0; i<firstDay; i++) daysHTML += `<div class="aspect-square"></div>`;
+            
             for(let d=1; d<=daysInMonth; d++) {
                 const currentStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 const isSelected = currentStr === state.selectedDate;
                 const isToday = currentStr === todayStr;
+                
+                // Determine styling based on state
+                let bgClass = isSelected ? 'bg-brand-600 text-white shadow-md scale-105' : 'bg-slate-50 text-slate-600 hover:bg-slate-100';
+                if (isToday && !isSelected) bgClass = 'bg-brand-50 text-brand-600 font-bold border border-brand-200';
+                
                 daysHTML += `
-                    <button onclick="selectDate('${currentStr}')" class="h-10 w-full flex items-center justify-center rounded-lg text-sm font-medium transition-colors relative
-                        ${isSelected ? 'bg-brand-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'}
-                        ${isToday && !isSelected ? 'text-brand-600 font-bold bg-brand-50' : ''}
-                    ">${d}</button>
+                    <button onclick="selectDate('${currentStr}')" class="w-full aspect-square flex flex-col items-center justify-center rounded-xl text-sm font-medium transition-all duration-200 relative ${bgClass}">
+                        <span>${d}</span>
+                        ${isToday ? '<span class="w-1 h-1 rounded-full bg-current mt-0.5"></span>' : ''}
+                    </button>
                 `;
             }
 
@@ -809,35 +897,48 @@
             });
 
             c.innerHTML = `
-                <div class="bg-white rounded-3xl p-5 shadow-soft border border-slate-50 mb-6 fade-in">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-bold text-slate-800">January 2026</h2>
-                    </div>
-                    <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-400 mb-2">
-                        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-                    </div>
-                    <div class="calendar-grid">${daysHTML}</div>
+                <div class="mb-6 fade-in">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-1">Schedule</h2>
+                    <p class="text-sm text-slate-500">View rotations and locations</p>
                 </div>
 
-                <div class="fade-in" style="animation-delay: 0.1s">
-                    <h3 class="font-bold text-slate-800 mb-3 px-1">Schedule Details</h3>
-                    <div class="bg-white rounded-2xl p-4 border-l-4 border-brand-500 shadow-soft mb-4 flex items-center justify-between">
-                        <div>
-                            <p class="text-xs text-slate-400 font-semibold uppercase">My Posting</p>
-                            <p class="text-lg font-bold text-slate-800">${selectedLoc}</p>
+                <div class="bg-white rounded-[24px] p-5 shadow-soft border border-slate-100 mb-6 fade-in">
+                    <div class="flex items-center justify-between mb-4 px-1">
+                        <h2 class="text-lg font-bold text-slate-800">January 2026</h2>
+                        <span class="text-xs bg-slate-100 px-2 py-1 rounded-lg text-slate-500 font-medium">Final Year</span>
+                    </div>
+                    <div class="grid grid-cols-7 gap-2 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+                        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                    </div>
+                    <div class="grid grid-cols-7 gap-2">${daysHTML}</div>
+                </div>
+
+                <div class="fade-in pb-8" style="animation-delay: 0.1s">
+                    <h3 class="font-bold text-slate-800 mb-3 px-1 text-sm uppercase tracking-wide">Details for ${new Date(state.selectedDate).toLocaleDateString('en-GB', {day: 'numeric', month: 'short'})}</h3>
+                    
+                    <div class="bg-gradient-to-r from-brand-600 to-indigo-600 rounded-2xl p-5 shadow-float mb-4 flex items-center justify-between text-white relative overflow-hidden">
+                        <div class="absolute right-0 top-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8 blur-xl"></div>
+                        <div class="relative z-10">
+                            <p class="text-[10px] text-brand-100 font-bold uppercase tracking-widest mb-1">My Posting</p>
+                            <p class="text-lg font-bold leading-tight max-w-[220px]">${selectedLoc}</p>
                         </div>
-                        <div class="w-10 h-10 bg-brand-50 rounded-full flex items-center justify-center text-brand-600">
+                        <div class="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white relative z-10">
                             <i data-lucide="map-pin" class="w-5 h-5"></i>
                         </div>
                     </div>
 
                     ${pinnedLocs.length > 0 ? `
-                    <div class="space-y-2">
-                         <p class="text-xs text-slate-400 font-semibold uppercase px-1">Friends</p>
+                    <div class="space-y-3">
+                         <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest px-1">Friend Locations</p>
                          ${pinnedLocs.map(p => `
-                            <div class="bg-white rounded-xl p-3 flex items-center justify-between shadow-sm border border-slate-50">
-                                <span class="font-medium text-slate-700 text-sm">${p.name}</span>
-                                <span class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 truncate max-w-[150px]">${p.loc}</span>
+                            <div class="bg-white rounded-xl p-3.5 flex items-center justify-between shadow-sm border border-slate-100">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold">
+                                        ${p.name.charAt(0)}
+                                    </div>
+                                    <span class="font-bold text-slate-700 text-sm">${p.name.split(' ')[0]}</span>
+                                </div>
+                                <span class="text-[10px] bg-slate-50 border border-slate-100 px-2 py-1 rounded text-slate-500 font-medium truncate max-w-[140px]">${p.loc}</span>
                             </div>
                          `).join('')}
                     </div>` : ''}
@@ -847,32 +948,41 @@
 
         function selectDate(d) {
             state.selectedDate = d;
-            renderCalendar(document.getElementById('main-container'));
+            // Only re-render calendar section to prevent scroll jump if possible, 
+            // but for simplicity we render entire view
+            render(); 
         }
 
         function renderProfile(c) {
             c.innerHTML = `
-                <div class="flex flex-col items-center py-8 fade-in">
-                    <div class="w-24 h-24 bg-brand-100 rounded-full flex items-center justify-center text-brand-600 text-3xl font-bold mb-4 border-4 border-white shadow-lg">
+                <div class="flex flex-col items-center py-8 fade-in relative">
+                    <div class="w-32 h-32 bg-gradient-to-tr from-brand-100 to-indigo-100 rounded-full flex items-center justify-center text-brand-600 text-4xl font-bold mb-5 shadow-float ring-8 ring-white">
                         ${state.currentUser.name.charAt(0)}
                     </div>
-                    <h2 class="text-xl font-bold text-slate-800">${state.currentUser.name}</h2>
-                    <p class="text-slate-500 text-sm font-mono">${state.currentUser.reg}</p>
-                    <p class="text-slate-500 text-sm font-medium mt-1 bg-slate-100 px-3 py-1 rounded-full">Group ${state.currentUser.group}</p>
+                    <h2 class="text-2xl font-bold text-slate-800 text-center px-4">${state.currentUser.name}</h2>
+                    <p class="text-slate-500 text-sm font-mono mt-1">${state.currentUser.reg}</p>
                     
-                    <button onclick="toggleProfileModal()" class="mt-6 px-6 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm active:bg-slate-50">
-                        Switch User
+                    <div class="flex gap-2 mt-4">
+                        <span class="text-xs font-bold bg-brand-50 text-brand-700 px-3 py-1.5 rounded-full border border-brand-100">Group ${state.currentUser.group}</span>
+                        <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-100">Sem V</span>
+                    </div>
+
+                    <button onclick="toggleProfileModal()" class="mt-8 px-6 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 shadow-sm active:bg-slate-50 flex items-center gap-2">
+                        <i data-lucide="refresh-cw" class="w-4 h-4 text-slate-400"></i> Switch Student
                     </button>
                 </div>
 
-                <div class="bg-white rounded-2xl overflow-hidden shadow-soft border border-slate-50 fade-in" style="animation-delay: 0.1s">
+                <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 fade-in mx-1" style="animation-delay: 0.1s">
                     <div class="p-4 border-b border-slate-50 flex items-center justify-between">
-                        <span class="text-sm font-medium text-slate-600">Total Checklists Completed</span>
-                        <span class="text-sm font-bold text-brand-600">${Object.keys(state.checklist).length} Items</span>
+                        <span class="text-sm font-medium text-slate-600">Total Checklists</span>
+                        <span class="text-sm font-bold text-brand-600 bg-brand-50 px-2 py-1 rounded">${Object.keys(state.checklist).length} Items</span>
                     </div>
-                    <div class="p-4 flex items-center justify-between">
-                        <span class="text-sm font-medium text-slate-600">Academic Year</span>
-                        <span class="text-sm text-slate-400">2025-2026</span>
+                    <div class="p-4 border-b border-slate-50 flex items-center justify-between">
+                         <span class="text-sm font-medium text-slate-600">App Version</span>
+                        <span class="text-sm text-slate-400 font-mono">v1.2.0 (Mobile)</span>
+                    </div>
+                     <div class="p-4 flex items-center justify-center">
+                        <span class="text-xs text-slate-300 font-medium uppercase tracking-widest">Academic Year 2025-26</span>
                     </div>
                 </div>
             `;
@@ -883,21 +993,32 @@
         function toggleProfileModal() {
             const m = document.getElementById('profile-modal');
             const c = document.getElementById('profile-sheet-content');
+            const b = document.getElementById('modal-backdrop');
             const l = document.getElementById('user-selector-list');
             const input = document.getElementById('modal-search');
             
             if (m.classList.contains('hidden')) {
                 m.classList.remove('hidden');
+                // Allow browser to render removing hidden before animating opacity
+                requestAnimationFrame(() => {
+                    b.classList.remove('opacity-0');
+                    c.classList.remove('translate-y-full');
+                });
                 
                 const renderList = (filter = '') => {
                     const matches = STUDENTS.filter(s => s.name.toLowerCase().includes(filter.toLowerCase()) || s.reg.includes(filter));
                     l.innerHTML = matches.map(s => `
-                        <button onclick="switchUser(${s.id})" class="w-full text-left p-3 rounded-xl hover:bg-slate-50 flex items-center justify-between ${state.currentUser.id === s.id ? 'bg-brand-50 text-brand-700' : 'text-slate-700'}">
-                            <div>
-                                <div class="font-medium text-sm">${s.name}</div>
-                                <div class="text-[10px] text-slate-400 font-mono">${s.reg}</div>
+                        <button onclick="switchUser(${s.id})" class="w-full text-left p-4 rounded-2xl hover:bg-slate-50 flex items-center justify-between border border-transparent hover:border-slate-100 transition-all ${state.currentUser.id === s.id ? 'bg-brand-50 border-brand-100 ring-1 ring-brand-200' : ''}">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full ${state.currentUser.id === s.id ? 'bg-brand-200 text-brand-700' : 'bg-slate-100 text-slate-500'} flex items-center justify-center font-bold text-sm">
+                                    ${s.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <div class="font-bold text-sm text-slate-800">${s.name}</div>
+                                    <div class="text-xs text-slate-400 font-mono mt-0.5">${s.reg}</div>
+                                </div>
                             </div>
-                            ${state.currentUser.id === s.id ? '<i data-lucide="check" class="w-4 h-4"></i>' : ''}
+                            ${state.currentUser.id === s.id ? '<div class="w-6 h-6 bg-brand-500 rounded-full flex items-center justify-center"><i data-lucide="check" class="w-3.5 h-3.5 text-white"></i></div>' : ''}
                         </button>
                     `).join('');
                     lucide.createIcons();
@@ -906,9 +1027,11 @@
                 renderList();
                 input.oninput = (e) => renderList(e.target.value);
                 input.value = '';
+                // Focus input after animation
+                setTimeout(() => input.focus(), 300);
 
-                setTimeout(() => c.classList.remove('translate-y-full'), 10);
             } else {
+                b.classList.add('opacity-0');
                 c.classList.add('translate-y-full');
                 setTimeout(() => m.classList.add('hidden'), 300);
             }
@@ -922,7 +1045,13 @@
         }
 
         // INIT
-        window.onload = () => render();
+        window.onload = () => {
+            render();
+            // Prevent bounce on iOS
+            document.body.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+            document.getElementById('main-scroller').addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
+            document.getElementById('user-selector-list').addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
+        };
 
     </script>
 </body>
