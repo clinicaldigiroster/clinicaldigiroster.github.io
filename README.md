@@ -33,17 +33,8 @@
                     },
                     boxShadow: {
                         'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-                        'nav': '0 -4px 25px rgba(0,0,0,0.04)',
+                        'nav': '0 -4px 20px rgba(0,0,0,0.03)',
                         'float': '0 10px 30px -5px rgba(79, 70, 229, 0.3)'
-                    },
-                    animation: {
-                        'slide-up': 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                    },
-                    keyframes: {
-                        slideUp: {
-                            '0%': { transform: 'translateY(10px)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' },
-                        }
                     }
                 }
             }
@@ -51,30 +42,16 @@
     </script>
 
     <style>
-        /* Mobile Reset & Scroll Handling */
-        html { 
-            -webkit-tap-highlight-color: transparent; 
-            touch-action: manipulation;
-        }
+        html { -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
         
+        /* Native scrolling for reliability */
         body { 
-            /* Lock body to viewport */
-            height: 100dvh; 
-            width: 100vw;
-            overflow: hidden; 
-            position: fixed;
-            inset: 0;
             background-color: #f8fafc;
+            min-height: 100vh;
+            /* Ensure bottom nav doesn't cover content */
+            padding-bottom: 100px; 
+            padding-top: 60px;
         }
-        
-        /* Main Scroll Container */
-        #main-scroller {
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-            overscroll-behavior-y: contain; /* Prevent pull-to-refresh interfering */
-            scrollbar-width: none; /* Firefox */
-        }
-        #main-scroller::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
         
         /* Utilities */
         .calendar-grid { 
@@ -84,7 +61,7 @@
         }
         
         .fade-in { 
-            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+            animation: fadeIn 0.4s ease-out forwards; 
             opacity: 0;
             transform: translateY(10px);
         }
@@ -92,95 +69,87 @@
             to { opacity: 1; transform: translateY(0); } 
         }
 
-        /* Safe Area Support for iPhone X+ */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Safe Area Support */
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
         .pt-safe { padding-top: env(safe-area-inset-top); }
     </style>
 </head>
-<body class="text-slate-900 flex flex-col selection:bg-brand-100">
+<body class="text-slate-900 selection:bg-brand-100 relative">
 
-    <!-- TOP BAR (Fixed Height) -->
-    <header class="flex-none h-14 bg-white/90 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-5 z-40 relative pt-safe">
-        <h1 id="header-title" class="font-bold text-lg text-slate-800 tracking-tight">Dashboard</h1>
-        <button onclick="toggleProfileModal()" class="w-9 h-9 rounded-full bg-gradient-to-br from-brand-100 to-indigo-100 text-brand-700 flex items-center justify-center text-xs font-bold border border-brand-200/50 shadow-sm active:scale-95 transition-transform">
+    <!-- TOP BAR (Fixed) -->
+    <header class="fixed top-0 inset-x-0 h-16 bg-white/90 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-5 z-40 pt-safe transition-all shadow-sm">
+        <h1 id="header-title" class="font-bold text-lg text-slate-800">Dashboard</h1>
+        <button onclick="toggleProfileModal()" class="w-9 h-9 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold border border-brand-100 shadow-sm active:scale-95 transition-transform">
             ME
         </button>
     </header>
 
-    <!-- MAIN CONTENT (Scrollable Area) -->
-    <main id="main-scroller" class="flex-1 w-full bg-slate-50/50 relative">
-        <!-- Container with bottom padding to clear nav -->
-        <div id="content-area" class="px-4 pt-4 pb-32 min-h-full">
-            <!-- Injected via JS -->
-        </div>
+    <!-- MAIN CONTENT -->
+    <main id="main-container" class="px-4 pt-2">
+        <!-- Injected via JS -->
     </main>
 
-    <!-- BOTTOM NAV (Fixed Height) -->
-    <nav class="flex-none bg-white border-t border-slate-100 shadow-nav z-50 pb-safe">
-        <div class="h-[70px] grid grid-cols-5 items-center px-1">
-            <button onclick="switchTab('home')" class="nav-btn group flex flex-col items-center justify-center h-full text-brand-600 w-full" data-tab="home">
-                <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors relative">
-                    <i data-lucide="layout-dashboard" class="w-6 h-6 mb-1 transition-transform group-active:scale-90"></i>
-                    <span class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full hidden" id="home-dot"></span>
-                </div>
-                <span class="text-[10px] font-semibold tracking-wide">Home</span>
-            </button>
-            
-            <button onclick="switchTab('calendar')" class="nav-btn group flex flex-col items-center justify-center h-full text-slate-400 w-full" data-tab="calendar">
-                <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
-                    <i data-lucide="calendar" class="w-6 h-6 mb-1 transition-transform group-active:scale-90"></i>
-                </div>
-                <span class="text-[10px] font-medium tracking-wide">Plan</span>
-            </button>
+    <!-- SCROLL TO TOP BUTTON -->
+    <button id="scrollTopBtn" onclick="window.scrollTo(0,0)" class="fixed bottom-24 right-5 z-30 bg-white text-brand-600 p-3 rounded-full shadow-lg border border-slate-100 opacity-0 translate-y-10 transition-all duration-300 pointer-events-none active:scale-90">
+        <i data-lucide="arrow-up" class="w-5 h-5"></i>
+    </button>
 
-            <!-- Floating Action Button Style Center -->
-            <button onclick="switchTab('requirements')" class="nav-btn group flex flex-col items-center justify-center h-full text-slate-400 w-full relative" data-tab="requirements">
-                <div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-gradient-to-tr from-brand-600 to-brand-500 text-white p-3.5 rounded-2xl shadow-float border-[4px] border-slate-50 transition-transform group-active:scale-90 active:shadow-none">
-                    <i data-lucide="clipboard-list" class="w-6 h-6"></i>
-                </div>
-                <span class="text-[10px] font-medium tracking-wide mt-7">Log</span>
-            </button>
+    <!-- BOTTOM NAV (Fixed - Reverted Style) -->
+    <nav class="fixed bottom-0 inset-x-0 h-[80px] bg-white border-t border-slate-100 shadow-nav flex justify-around items-center px-2 pb-2 z-50 pb-safe">
+        <button onclick="switchTab('home')" class="nav-btn group flex flex-col items-center justify-center w-16 h-full text-brand-600" data-tab="home">
+            <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
+                <i data-lucide="layout-dashboard" class="w-6 h-6 mb-1 transition-transform group-active:scale-95"></i>
+            </div>
+            <span class="text-[10px] font-medium">Dash</span>
+        </button>
+        
+        <button onclick="switchTab('calendar')" class="nav-btn group flex flex-col items-center justify-center w-16 h-full text-slate-400" data-tab="calendar">
+            <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
+                <i data-lucide="calendar" class="w-6 h-6 mb-1 transition-transform group-active:scale-95"></i>
+            </div>
+            <span class="text-[10px] font-medium">Schedule</span>
+        </button>
 
-            <button onclick="switchTab('friends')" class="nav-btn group flex flex-col items-center justify-center h-full text-slate-400 w-full" data-tab="friends">
-                <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
-                    <i data-lucide="users" class="w-6 h-6 mb-1 transition-transform group-active:scale-90"></i>
-                </div>
-                <span class="text-[10px] font-medium tracking-wide">Dir</span>
-            </button>
-            
-            <button onclick="switchTab('profile')" class="nav-btn group flex flex-col items-center justify-center h-full text-slate-400 w-full" data-tab="profile">
-                <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
-                    <i data-lucide="user" class="w-6 h-6 mb-1 transition-transform group-active:scale-90"></i>
-                </div>
-                <span class="text-[10px] font-medium tracking-wide">Me</span>
-            </button>
-        </div>
+        <!-- Floating Center Button -->
+        <button onclick="switchTab('requirements')" class="nav-btn group flex flex-col items-center justify-center w-16 h-full text-slate-400 relative" data-tab="requirements">
+            <div class="bg-brand-600 text-white p-3.5 rounded-2xl -mt-8 shadow-lg shadow-brand-500/40 border-[4px] border-[#f8fafc] transition-transform group-active:scale-95 active:shadow-none">
+                <i data-lucide="clipboard-list" class="w-6 h-6"></i>
+            </div>
+            <span class="text-[10px] font-medium mt-1">Checklists</span>
+        </button>
+
+        <button onclick="switchTab('friends')" class="nav-btn group flex flex-col items-center justify-center w-16 h-full text-slate-400" data-tab="friends">
+            <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
+                <i data-lucide="users" class="w-6 h-6 mb-1 transition-transform group-active:scale-95"></i>
+            </div>
+            <span class="text-[10px] font-medium">Directory</span>
+        </button>
+        
+        <button onclick="switchTab('profile')" class="nav-btn group flex flex-col items-center justify-center w-16 h-full text-slate-400" data-tab="profile">
+            <div class="p-1.5 rounded-xl group-hover:bg-slate-50 transition-colors">
+                <i data-lucide="user" class="w-6 h-6 mb-1 transition-transform group-active:scale-95"></i>
+            </div>
+            <span class="text-[10px] font-medium">Profile</span>
+        </button>
     </nav>
 
-    <!-- PROFILE MODAL (Full Height Sheet) -->
+    <!-- PROFILE MODAL -->
     <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
-        <div class="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity opacity-0" id="modal-backdrop" onclick="toggleProfileModal()"></div>
-        
-        <div class="absolute bottom-0 inset-x-0 bg-white rounded-t-[32px] p-6 transition-transform transform translate-y-full duration-300 shadow-2xl h-[85dvh] flex flex-col pb-safe" id="profile-sheet-content">
-            <!-- Modal Handle -->
-            <div class="w-12 h-1.5 bg-slate-200/80 rounded-full mx-auto mb-6 flex-none"></div>
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity opacity-0" id="modal-backdrop" onclick="toggleProfileModal()"></div>
+        <div class="absolute bottom-0 inset-x-0 bg-white rounded-t-[32px] p-6 transition-transform transform translate-y-full duration-300 shadow-2xl max-h-[85vh] flex flex-col pb-safe" id="profile-sheet-content">
+            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 flex-none"></div>
+            <h2 class="text-xl font-bold text-slate-800 mb-2 flex-none">Select Student</h2>
             
-            <div class="flex-none mb-4">
-                <h2 class="text-2xl font-bold text-slate-800 mb-1">Select Student</h2>
-                <p class="text-sm text-slate-500">Find your name to log in</p>
+            <div class="flex-none mb-4 relative">
+                <i data-lucide="search" class="absolute left-4 top-3.5 w-5 h-5 text-slate-400"></i>
+                <input type="text" id="modal-search" placeholder="Search name or reg..." 
+                    class="w-full bg-slate-100 border-none pl-12 pr-4 py-3 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
             </div>
 
-            <!-- Sticky Search in Modal -->
-            <div class="flex-none mb-4">
-                <div class="relative group">
-                    <i data-lucide="search" class="absolute left-4 top-3.5 w-5 h-5 text-slate-400 group-focus-within:text-brand-500 transition-colors"></i>
-                    <input type="text" id="modal-search" placeholder="Search name or reg no..." 
-                        class="w-full bg-slate-100 border-none pl-12 pr-4 py-3.5 rounded-2xl text-base focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all shadow-sm">
-                </div>
-            </div>
-
-            <!-- Scrollable List -->
-            <div class="flex-1 overflow-y-auto no-scrollbar space-y-2 pr-1" id="user-selector-list">
+            <div class="flex-1 overflow-y-auto no-scrollbar space-y-1" id="user-selector-list">
                 <!-- Users injected here -->
             </div>
         </div>
@@ -460,13 +429,12 @@
             const titles = { 'home': 'Dashboard', 'calendar': 'Schedule', 'requirements': 'Requirements', 'friends': 'Directory', 'profile': 'My Profile' };
             document.getElementById('header-title').innerText = titles[tab] || 'Clinical Tracker';
 
-            // Scroll to top of main container, NOT body
-            document.getElementById('main-scroller').scrollTop = 0;
+            window.scrollTo(0,0);
             render();
         }
 
         function render() {
-            const c = document.getElementById('content-area');
+            const c = document.getElementById('main-container');
             c.innerHTML = '';
             
             if(state.view === 'home') renderHome(c);
@@ -616,9 +584,6 @@
                         }
                     </div>
                 </div>
-                
-                <!-- Bottom Spacer for Scrolling -->
-                <div class="h-8"></div>
             `;
         }
 
@@ -638,7 +603,7 @@
                 }
             });
             render();
-            document.getElementById('main-scroller').scrollTop = 0;
+            window.scrollTo(0,0);
         }
 
         function renderStudentDetail(c, studentId) {
@@ -710,7 +675,7 @@
             );
 
             c.innerHTML = `
-                <div class="sticky top-0 bg-slate-50/95 backdrop-blur-sm z-20 pb-4 pt-1">
+                <div class="sticky top-16 bg-slate-50/95 backdrop-blur-sm z-20 pb-4 pt-1">
                      <div class="relative shadow-sm group">
                         <i data-lucide="search" class="absolute left-4 top-3.5 w-5 h-5 text-slate-400 group-focus-within:text-brand-500 transition-colors"></i>
                         <input type="text" placeholder="Search 20 students..." 
@@ -756,7 +721,7 @@
                 const progress = getWardProgress(ward);
                 
                 c.innerHTML = `
-                    <div class="mb-6 fade-in sticky top-0 bg-slate-50/95 backdrop-blur-sm z-20 py-2">
+                    <div class="mb-6 fade-in sticky top-16 bg-slate-50/95 backdrop-blur-sm z-20 py-2">
                         <div class="flex items-center gap-3 mb-4">
                             <button onclick="switchTab('requirements')" class="bg-white border border-slate-200 p-2 rounded-xl shadow-sm text-slate-500 hover:text-brand-600">
                                 <i data-lucide="arrow-left" class="w-5 h-5"></i>
@@ -1044,13 +1009,22 @@
             render();
         }
 
+        // ==================== SCROLL HANDLER ====================
+        
+        window.onscroll = function() {
+            const btn = document.getElementById('scrollTopBtn');
+            if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+                btn.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
+            } else {
+                btn.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
+            }
+        };
+
         // INIT
         window.onload = () => {
             render();
             // Prevent bounce on iOS
-            document.body.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
-            document.getElementById('main-scroller').addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
-            document.getElementById('user-selector-list').addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
+            // document.body.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
         };
 
     </script>
