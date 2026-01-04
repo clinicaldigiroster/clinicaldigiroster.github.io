@@ -42,15 +42,23 @@
 
     <style>
         html { -webkit-tap-highlight-color: transparent; }
-        body { overscroll-behavior-y: none; }
+        /* Use dynamic viewport height for mobile browsers */
+        body { overscroll-behavior-y: none; height: 100dvh; }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        
         .fade-in { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Ensure smooth touch scrolling on iOS */
+        #main-container { -webkit-overflow-scrolling: touch; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 h-screen flex flex-col overflow-hidden selection:bg-brand-100">
+<!-- Changed h-screen to h-[100dvh] for better mobile resizing -->
+<body class="bg-slate-50 text-slate-900 h-[100dvh] flex flex-col overflow-hidden selection:bg-brand-100">
 
     <!-- TOP BAR -->
     <header class="h-14 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 fixed top-0 w-full z-40">
@@ -415,19 +423,21 @@
             const ward = getWardFromLocation(myLoc);
             const wardProgress = ward ? getWardProgress(ward) : 0;
             const activeRange = DATE_RANGES.find(r => todayStr >= r.start && todayStr <= r.end);
-            const rangeLabel = activeRange ? activeRange.label : 'No Active Range';
+            
+            // Calculate Days Left
+            let daysLeftText = "No active rotation";
+            if (activeRange) {
+                const today = new Date(todayStr);
+                const end = new Date(activeRange.end);
+                const diffTime = Math.abs(end - today);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                daysLeftText = diffDays === 0 ? "Last Day" : `${diffDays} Day${diffDays > 1 ? 's' : ''} Left`;
+            }
             
             // Stats
             const totalItems = CLINICAL_DATA.reduce((acc, w) => acc + w.logbook.length + w.files.length - (w.files.some(f=>f.id==='f_title')?1:0), 0);
             const completedItems = Object.keys(state.checklist).length;
             const totalProgress = Math.round((completedItems / totalItems) * 100) || 0;
-
-            // Get pending items for current ward
-            let pendingItems = [];
-            if(ward) {
-                const all = [...ward.logbook, ...ward.files].filter(i => i.id !== 'f_title');
-                pendingItems = all.filter(i => !state.checklist[i.id]).slice(0, 3);
-            }
 
             c.innerHTML = `
                 <div class="mb-4 fade-in">
@@ -450,33 +460,42 @@
                             <div>
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="bg-white/20 px-2 py-0.5 rounded text-[10px] font-semibold backdrop-blur-md border border-white/10 uppercase tracking-wide text-brand-50">Current Posting</span>
-                                    ${activeRange ? `<span class="text-[10px] text-brand-200 font-medium">${activeRange.start.slice(5)} to ${activeRange.end.slice(5)}</span>` : ''}
                                 </div>
-                                <h3 class="text-xl font-bold leading-tight max-w-[200px] mb-1">${myLoc}</h3>
-                                <p class="text-brand-100 text-xs font-medium">${rangeLabel}</p>
+                                <h3 class="text-xl font-bold leading-tight max-w-[200px] mb-2">${myLoc}</h3>
                             </div>
                             <div class="bg-white/20 p-2.5 rounded-xl backdrop-blur-sm border border-white/10 shadow-sm">
                                 <i data-lucide="map-pin" class="w-6 h-6 text-white"></i>
                             </div>
                         </div>
                         
-                        <div class="mt-6 flex items-end justify-between">
-                            <div class="flex-1 mr-4">
-                                <div class="flex justify-between text-xs font-medium mb-1.5 text-brand-100">
-                                    <span>Ward Progress</span>
-                                    <span>${wardProgress}%</span>
-                                </div>
-                                <div class="bg-black/20 rounded-full h-1.5 overflow-hidden backdrop-blur-sm">
-                                    <div class="bg-white h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(255,255,255,0.5)]" style="width: ${wardProgress}%"></div>
-                                </div>
+                        <div class="mt-4 flex items-end justify-between">
+                            <div class="bg-white/20 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl">
+                                <span class="text-xs text-brand-100 font-medium block uppercase tracking-wider">Time Remaining</span>
+                                <span class="text-xl font-bold text-white">${daysLeftText}</span>
                             </div>
-                            ${ward ? `<button onclick="switchTab('requirements', '${ward.id}')" class="bg-white text-brand-700 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm hover:bg-brand-50 transition-colors">Open</button>` : ''}
+                            ${ward ? `<button onclick="switchTab('requirements', '${ward.id}')" class="bg-white text-brand-700 text-xs font-bold px-3 py-2 rounded-lg shadow-sm hover:bg-brand-50 transition-colors flex items-center gap-1">Open <i data-lucide="arrow-right" class="w-3 h-3"></i></button>` : ''}
                         </div>
                     </div>
                 </div>
 
+                <!-- RESOURCES CARD -->
+                <a href="https://drive.google.com/drive/folders/16K54NpWLnqiZCD7wcha10Uew9UnkCuDi?usp=drive_link" target="_blank" class="block bg-orange-50 border border-orange-100 p-4 rounded-2xl mb-6 flex items-center justify-between active:scale-95 transition-transform fade-in" style="animation-delay: 0.05s">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
+                            <i data-lucide="folder-heart" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800">Resources</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Evaluation Forms, Viva Answers & All</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-2 rounded-full shadow-sm text-slate-400">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                    </div>
+                </a>
+
                 <!-- QUICK STATS GRID -->
-                <div class="grid grid-cols-3 gap-3 mb-6 fade-in" style="animation-delay: 0.05s">
+                <div class="grid grid-cols-3 gap-3 mb-6 fade-in" style="animation-delay: 0.1s">
                     <div class="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
                         <div class="text-emerald-500 mb-1"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
                         <span class="text-xl font-bold text-slate-800">${completedItems}</span>
@@ -496,7 +515,7 @@
 
                 <!-- EASY ACCESS TABS -->
                 <h3 class="font-bold text-slate-800 mb-3 px-1">Quick Access</h3>
-                <div class="grid grid-cols-2 gap-3 mb-8 fade-in" style="animation-delay: 0.1s">
+                <div class="grid grid-cols-2 gap-3 mb-8 fade-in" style="animation-delay: 0.15s">
                     <button onclick="switchTab('requirements')" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-3 active:scale-95 transition-transform group">
                         <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
                             <i data-lucide="file-edit" class="w-5 h-5"></i>
